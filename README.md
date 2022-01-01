@@ -1,8 +1,8 @@
 # InfluxAnalyser
 Tool to Analyse InfluxDB
 
-Display Databases, Measurements\n
-Add data\n
+Display Databases, Measurements<br>
+Add data<br>
 Delete measurement<br>
-Create measurement
-Create database
+Create measurement<br>
+Create database<br>
