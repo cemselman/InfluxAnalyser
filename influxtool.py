@@ -3,6 +3,7 @@ from pandas import DataFrame
 import pandas as pd
 import numpy as np
 
+
 class InfluxMain:
 
     def __init__(self, host, port, user, password, dbname):
@@ -33,6 +34,7 @@ class InfluxMain:
             print("Done!")            
         except Exception as e:
             traceback.print_exc()
+
 
 class InfluxAnalyser:
 
@@ -73,8 +75,7 @@ class InfluxAnalyser:
         df['Index_Time']=pd.to_datetime(df[influx_index])
         df.set_index('Index_Time',inplace=True)
         influx.insert_data(df, target, tag_columns)
-        
-            
+
 
 if __name__ == "__main__":
 
