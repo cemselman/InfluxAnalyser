@@ -6,10 +6,8 @@ import numpy as np
 class InfluxMain:
 
     def __init__(self, host, port, user, password, dbname):
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
+        self.host, self.port = host, port
+        self.user, self.password = user, password
         self.dbname = dbname
         self.client = DataFrameClient(host, port, user, password, dbname)
         self.__create_database__(dbname) #Creates if db does not exist
@@ -21,8 +19,7 @@ class InfluxMain:
         except Exception as e:
             print(e)
 
-    def insert_data(self, data, measurement):
-        tag_columns=['Name', 'City', 'Market_Type'] #Define tag column names
+    def insert_data(self, data, measurement, tag_columns):        
         self.__write_to_database__(data, measurement, tag_columns)
             
     def drop_measurement(self, measurement):
@@ -31,8 +28,7 @@ class InfluxMain:
 
     def __write_to_database__(self, data, measurement, tag_columns, protocol="line"):
         try:
-            print("Create Measurement: " + measurement)            
-            #fieldlist = ['Par_Val', 'Core_Val', 'Start_Time'] comes with data, we are not defining in write_points. 
+            print("Create Measurement: " + measurement) 
             self.client.write_points(data, measurement, tag_columns=tag_columns, protocol = protocol, batch_size=10000)
             print("Done!")            
         except Exception as e:
@@ -40,12 +36,11 @@ class InfluxMain:
 
 class InfluxAnalyser:
 
-    def __init__(self, host, port, user, password):
-        self.host = host
-        self.port = port
-        self.user = user
-        self.password = password
-        self.influxdb_client = InfluxDBClient(host, port, user, password)
+    def __init__(self, host, port, user, password, dbname):
+        self.host, self.port = host, port
+        self.user, self.password = user, password
+        self.dbname = dbname
+        self.influxdb_client = InfluxDBClient(host, port, user, password, dbname)
         
     def close_connection(self):
         self.influxdb_client.close()
@@ -72,32 +67,45 @@ class InfluxAnalyser:
         except Exception as e:
             print(e)
             
+    def migrate_measurement(self,source,target,influx,tag_columns,influx_index):
+        select = "select * from " + source 
+        df = DataFrame(self.influxdb_client.query(select).get_points())
+        df['Index_Time']=pd.to_datetime(df[influx_index])
+        df.set_index('Index_Time',inplace=True)
+        influx.insert_data(df, target, tag_columns)
+        
+            
 
 if __name__ == "__main__":
 
-    host = "localhost"
-    port = 8086
-    user = ""
-    password = ""
+    host, port = "localhost", 8086
+    user, password = "", ""
     database = "TestDB"
     measurement = "TestMeasurement"
     
-    #Test data - Dataframe with Python Dataframe
+    influx = InfluxMain(host, port, user, password, database) #Create DB if not exists, initiate connection object
+    #influx.drop_measurement(measurement)
+    
+    #Test data : Dataframe with Python Dataframe
     df = pd.DataFrame(columns=['Name','City','Market_Type','Par_Val','Core_Val'])
     dfrow = {'Name':'Mert', 'City':'ist','Market_Type':'marmar','Par_Val':'23443234','Core_Val':'7567567', 'Start_Time':'2021-01-01 00:10:33'}
     df = df.append(dfrow, ignore_index = True)    
-    df['Index_Time']=pd.to_datetime(df['Start_Time'])
-    df.set_index('Index_Time',inplace=True) 
-    
-    influxdb_obj = InfluxMain(host, port, user, password, database) #Create DB
-    influxdb_obj.drop_measurement(measurement) #Delete measurement
-    influxdb_obj.insert_data(df, measurement) #Create measurement and add data
-    del influxdb_obj
+    df['Index_Time']=pd.to_datetime(df['Start_Time']) 
+    df.set_index('Index_Time',inplace=True) #Setting index time for influxdb measurement
+        
+    tag_columns=['Name', 'City', 'Market_Type'] #Define tag column names. Fields come with data.
+    influx.insert_data(df, measurement, tag_columns) #Create measurement if not exists, and add data
 
-    analyser = InfluxAnalyser(host, port, user, password)
+    analyser = InfluxAnalyser(host, port, user, password, database)
     analyser.get_databases(True)
     analyser.show_measurements()
-    analyser.close_connection()
+    source, target, dbname = "TestMeasurement", "NewMeasurement", "TestDB"
+    influx_index = "Start_Time" #Influx DB table index time
+    analyser.migrate_measurement(source,target,influx,tag_columns,influx_index) #Read from source, write to target
+    analyser.close_connection()    
+    
     del analyser
+    del influx
+    
     
     
