@@ -17,7 +17,7 @@ class TestInfluxdbMethods(unittest.TestCase):
         self.influxdb_client = InfluxDBClient(self.host, self.port, self.user, self.password, self.dbname)
 
     def test_influxdb_connection(self):
-        self.assertTrue(self.influxdb_client.query("SHOW DATABASES").get_points())
+        self.assertTrue(self.influxdb_client.query("SHOW DATABASES"))
         self.influxdb_client.close()
 
 
