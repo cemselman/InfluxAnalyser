@@ -2,6 +2,11 @@ from influxdb import DataFrameClient, InfluxDBClient
 from pandas import DataFrame
 import pandas as pd
 import numpy as np
+import logging
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class InfluxMain:
@@ -17,6 +22,7 @@ class InfluxMain:
         try:
             print("Creating DB: " + db)
             self.client.create_database(db)
+            logger.info(f"Successfully created database : {db}")
         except Exception as e:
             print(e)
 
