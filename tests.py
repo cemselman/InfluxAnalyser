@@ -15,16 +15,14 @@ class TestInfluxMainMethods(unittest.TestCase):
         self.host, self.port = "localhost", 8086
         self.user, self.password = "", ""
         self.dbname = "TestDB"
-        self.influxdb_client = InfluxDBClient(
-            self.host, self.port, self.user, self.password, self.dbname
-        )
         self.InfluxMain = InfluxMain(
             self.host, self.port, self.user, self.password, self.dbname
         )
 
     def test_influxdb_connection(self):
-        self.assertTrue(self.influxdb_client.query("SHOW DATABASES"))
-        self.influxdb_client.close()
+        self.assertTrue(self.InfluxMain.influxdb_client.query("SHOW DATABASES"))
+        self.InfluxMain.influxdb_client.close()
+        self.InfluxMain.close_connection()
 
     def test_database_creation(self):
         with self.assertLogs(logger) as log:
