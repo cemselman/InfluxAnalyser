@@ -27,11 +27,18 @@ class InfluxMain:
             print(e)
 
     def close_connection(self):
-        self.client.close()
-        logger.info(f"Successfully closed db connection")
+        try:
+            self.client.close()
+            logger.info(f"Successfully closed db connection")
+        except Exception as e:
+            print(e)
 
     def insert_data(self, data, measurement, tag_columns):
-        self.__write_to_database__(data, measurement, tag_columns)
+        try:
+            self.__write_to_database__(data, measurement, tag_columns)
+            logger.info(f"Insert to db successfull")
+        except Exception as e:
+            print(e)
 
     def drop_measurement(self, measurement):
         print("Dropping measurement: " + measurement)
