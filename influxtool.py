@@ -42,7 +42,11 @@ class InfluxMain:
 
     def drop_measurement(self, measurement):
         print("Dropping measurement: " + measurement)
-        self.client.drop_measurement(measurement)
+        try:
+            self.client.drop_measurement(measurement)
+            logger.info(f"Measurement Dropped.")
+        except Exception as e:
+            print(e)
 
     def __write_to_database__(self, data, measurement, tag_columns, protocol="line"):
         try:
@@ -68,8 +72,11 @@ class InfluxAnalyser:
         self.influxdb_client = InfluxDBClient(host, port, user, password, dbname)
 
     def close_connection(self):
-        self.influxdb_client.close()
-        logger.info(f"Successfully closed db connection")
+        try:
+            self.influxdb_client.close()
+            logger.info(f"Successfully closed db connection")
+        except Exception as e:
+            print(e)
 
     def get_databases(self, print_to_screen):
         try:
@@ -80,6 +87,7 @@ class InfluxAnalyser:
                 print("\n| INFLUX DATABASES |\n")
                 for i in range(len(df_databases)):
                     print("DB-" + str(i + 1), "> ", df_databases["name"].loc[i])
+            logger.info(f"Databases list successfully received")
             return df_databases
         except Exception as e:
             print(e)
@@ -97,16 +105,20 @@ class InfluxAnalyser:
                 )
                 print("Measurements >")
                 print(df_measurements)
+                logger.info(f"Databases list successfully received")
         except Exception as e:
             print(e)
 
     def migrate_measurement(self, source, target, influx, tag_columns, influx_index):
-        select = "select * from " + source
-        df = DataFrame(self.influxdb_client.query(select).get_points())
-        df["Index_Time"] = pd.to_datetime(df[influx_index])
-        df.set_index("Index_Time", inplace=True)
-        influx.insert_data(df, target, tag_columns)
-        logger.info(f"Successfully completed the migration")
+        try:
+            select = "select * from " + source
+            df = DataFrame(self.influxdb_client.query(select).get_points())
+            df["Index_Time"] = pd.to_datetime(df[influx_index])
+            df.set_index("Index_Time", inplace=True)
+            influx.insert_data(df, target, tag_columns)
+            logger.info(f"Successfully completed the migration")
+        except Exception as e:
+            print(e)
 
 
 if __name__ == "__main__":
