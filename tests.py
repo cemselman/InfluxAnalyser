@@ -11,17 +11,11 @@ from influxtool import (
 )
 
 
-class TestInfluxMainMethods(unittest.TestCase):
-    def setUp(self) -> None:
-        self.host, self.port = "localhost", 8086
-        self.user, self.password = "", ""
-        self.dbname = "TempTestDB"
-        self.InfluxMain = InfluxMain(
-            self.host, self.port, self.user, self.password, self.dbname
-        )
-
+class TestData:
+    @staticmethod
+    def get_data():
         # START : Test data : Dataframe with Python Dataframe
-        self.df = pd.DataFrame(
+        df = pd.DataFrame(
             columns=["Name", "City", "Market_Type", "Par_Val", "Core_Val"]
         )
         dfrow = {
@@ -32,18 +26,30 @@ class TestInfluxMainMethods(unittest.TestCase):
             "Core_Val": "7567567",
             "Start_Time": "2021-01-01 00:10:33",
         }
-        self.df = self.df.append(dfrow, ignore_index=True)
-        self.df["Index_Time"] = pd.to_datetime(self.df["Start_Time"])
-        self.df.set_index(
+        df = df.append(dfrow, ignore_index=True)
+        df["Index_Time"] = pd.to_datetime(df["Start_Time"])
+        df.set_index(
             "Index_Time", inplace=True
         )  # Setting index time for influxdb measurement
 
-        self.tag_columns = [
+        tag_columns = [
             "Name",
             "City",
             "Market_Type",
         ]  # Define tag column names. Fields come with data.
         # END : Test data : Dataframe with Python Dataframe
+        return df, tag_columns
+
+
+class TestInfluxMainMethods(unittest.TestCase):
+    def setUp(self) -> None:
+        self.host, self.port = "localhost", 8086
+        self.user, self.password = "", ""
+        self.dbname = "TempTestDB"
+        self.InfluxMain = InfluxMain(
+            self.host, self.port, self.user, self.password, self.dbname
+        )
+        self.df, self.tag_columns = TestData.get_data()
 
     def close_db_connections(self) -> None:
         self.InfluxAnalyser.close_connection()
@@ -139,32 +145,7 @@ class TestInfluxAnalyserMethods(unittest.TestCase):
         self.InfluxMain = InfluxMain(
             self.host, self.port, self.user, self.password, self.dbname
         )
-
-        # START : Test data : Dataframe with Python Dataframe
-        self.influx_index = "Start_Time"
-        self.df = pd.DataFrame(
-            columns=["Name", "City", "Market_Type", "Par_Val", "Core_Val"]
-        )
-        dfrow = {
-            "Name": "Meril",
-            "City": "Istanbul",
-            "Market_Type": "marmar",
-            "Par_Val": "23443234",
-            "Core_Val": "7567567",
-            "Start_Time": "2021-01-01 00:10:33",
-        }
-        self.df = self.df.append(dfrow, ignore_index=True)
-        self.df["Index_Time"] = pd.to_datetime(self.df["Start_Time"])
-        self.df.set_index(
-            "Index_Time", inplace=True
-        )  # Setting index time for influxdb measurement
-
-        self.tag_columns = [
-            "Name",
-            "City",
-            "Market_Type",
-        ]  # Define tag column names. Fields come with data.
-        # END : Test data : Dataframe with Python Dataframe
+        self.df, self.tag_columns = TestData.get_data()
 
     def close_db_connections(self) -> None:
         self.InfluxAnalyser.close_connection()
