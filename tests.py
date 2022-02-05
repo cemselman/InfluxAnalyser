@@ -45,6 +45,11 @@ class TestInfluxMainMethods(unittest.TestCase):
         ]  # Define tag column names. Fields come with data.
         # END : Test data : Dataframe with Python Dataframe
 
+    def close_db_connections(self) -> None:
+        self.InfluxAnalyser.close_connection()
+        self.InfluxMain.close_connection()
+        self.InfluxMain.influxdb_client.close()
+
     def test_influxdb_connection(self):
         self.assertTrue(self.InfluxMain.influxdb_client.query("SHOW DATABASES"))
         self.InfluxMain.influxdb_client.close()
@@ -96,6 +101,18 @@ class TestInfluxMainMethods(unittest.TestCase):
         self.InfluxMain.close_connection()
         self.InfluxMain.influxdb_client.close()
 
+    def test_drop_database(self):
+        testdatabase = "TempTestDatabase"
+        self.InfluxMain.__create_database__(testdatabase)
+        with self.assertLogs(logger) as log:
+            self.InfluxMain.drop_database(testdatabase)
+        self.assertIn(
+            f"Database {testdatabase} Dropped.",
+            log.output[0],
+        )
+        self.InfluxMain.close_connection()
+        self.InfluxMain.influxdb_client.close()
+
     def test__write_to_database__(self):
         testmeasurement = "TempTestMeasurement"
         with self.assertLogs(logger) as log:
@@ -119,8 +136,12 @@ class TestInfluxAnalyserMethods(unittest.TestCase):
         self.InfluxAnalyser = InfluxAnalyser(
             self.host, self.port, self.user, self.password, self.dbname
         )
+        self.InfluxMain = InfluxMain(
+            self.host, self.port, self.user, self.password, self.dbname
+        )
 
         # START : Test data : Dataframe with Python Dataframe
+        self.influx_index = "Start_Time"
         self.df = pd.DataFrame(
             columns=["Name", "City", "Market_Type", "Par_Val", "Core_Val"]
         )
@@ -145,6 +166,11 @@ class TestInfluxAnalyserMethods(unittest.TestCase):
         ]  # Define tag column names. Fields come with data.
         # END : Test data : Dataframe with Python Dataframe
 
+    def close_db_connections(self) -> None:
+        self.InfluxAnalyser.close_connection()
+        self.InfluxMain.close_connection()
+        self.InfluxMain.influxdb_client.close()
+
     def test_influxdb_connection_close(self):
         with self.assertLogs(logger) as log:
             self.InfluxAnalyser.close_connection()
@@ -152,6 +178,7 @@ class TestInfluxAnalyserMethods(unittest.TestCase):
             f"Successfully closed db connection",
             log.output[0],
         )
+        self.close_db_connections()
 
     def test_get_databases(self):
         with self.assertLogs(logger) as log:
@@ -160,7 +187,7 @@ class TestInfluxAnalyserMethods(unittest.TestCase):
             f"Databases list successfully received",
             log.output[0],
         )
-        self.InfluxAnalyser.close_connection()
+        self.close_db_connections()
 
     def test_show_measurements(self):
         with self.assertLogs(logger) as log:
@@ -169,7 +196,19 @@ class TestInfluxAnalyserMethods(unittest.TestCase):
             f"Databases list successfully received",
             log.output[0],
         )
-        self.InfluxAnalyser.close_connection()
+        self.close_db_connections()
+
+    def test_migrate_measurement(self):
+        # Migrate influxdb measurement to another measurement
+        source, target = "TestMeasurement", "NewMeasurement"
+        self.influx_index = "Start_Time"
+        # Insert test data into source measurement
+        self.InfluxMain.insert_data(self.df, source, self.tag_columns)
+        self.InfluxAnalyser.migrate_measurement(
+            source, target, self.InfluxMain, self.tag_columns, self.influx_index
+        )
+        self.InfluxMain.drop_database(self.dbname)
+        self.close_db_connections()
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import logging
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class InfluxMain:
@@ -45,6 +45,14 @@ class InfluxMain:
         try:
             self.client.drop_measurement(measurement)
             logger.info(f"Measurement Dropped.")
+        except Exception as e:
+            print(e)
+
+    def drop_database(self, database):
+        print(f"Dropping database: {database}")
+        try:
+            self.client.drop_database(database)
+            logger.info(f"Database {database} Dropped.")
         except Exception as e:
             print(e)
 
@@ -131,9 +139,8 @@ if __name__ == "__main__":
     influx = InfluxMain(
         host, port, user, password, database
     )  # Create DB if not exists, initiate connection object
-    # influx.drop_measurement(measurement)
 
-    # Test data : Dataframe with Python Dataframe
+    # START : Test data : Dataframe with Python Dataframe
     df = pd.DataFrame(columns=["Name", "City", "Market_Type", "Par_Val", "Core_Val"])
     dfrow = {
         "Name": "Mert",
@@ -154,6 +161,8 @@ if __name__ == "__main__":
         "City",
         "Market_Type",
     ]  # Define tag column names. Fields come with data.
+    # END : Test data : Dataframe with Python Dataframe
+
     influx.insert_data(
         df, measurement, tag_columns
     )  # Create measurement if not exists, and add data
@@ -161,6 +170,8 @@ if __name__ == "__main__":
     analyser = InfluxAnalyser(host, port, user, password, database)
     analyser.get_databases(True)
     analyser.show_measurements()
+
+    # Migrate influxdb measurement to another measurement
     source, target, dbname = "TestMeasurement", "NewMeasurement", "TestDB"
     influx_index = "Start_Time"  # Influx DB table index time
     analyser.migrate_measurement(
